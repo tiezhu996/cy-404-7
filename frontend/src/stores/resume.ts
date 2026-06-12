@@ -4,6 +4,7 @@ import { Resume, ResumeBasicInfo, ResumeSection, ResumeSectionType } from '../ty
 import { createId } from '../utils/format';
 import { readStorage, storageKeys, writeStorage } from '../utils/storage';
 import { useTemplateStore } from './template';
+import { useCoverLetterStore } from './cover-letter';
 
 const defaultSections: ResumeSection[] = [
   { id: 'summary', title: '职业摘要', enabled: true },
@@ -149,6 +150,7 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
       activeResumeId: clone.id,
     }));
     persist(get());
+    useCoverLetterStore.getState().duplicateCoverLetter(resumeId, clone.id);
     return clone.id;
   },
   deleteResume: (resumeId) => {
@@ -159,6 +161,7 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
       return { resumes: nextResumes, activeResumeId };
     });
     persist(get());
+    useCoverLetterStore.getState().deleteCoverLettersByResumeId(resumeId);
   },
   setActiveResume: (resumeId) => {
     set({ activeResumeId: resumeId });

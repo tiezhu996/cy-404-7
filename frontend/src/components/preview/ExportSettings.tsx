@@ -1,22 +1,30 @@
-import { Download } from 'lucide-react';
+import { Download, FileText } from 'lucide-react';
 import { Button } from '../common/Button';
 
 interface ExportSettingsProps {
   margin: number;
   fontSize: number;
   isExporting: boolean;
+  withCoverLetter: boolean;
+  hasCoverLetter: boolean;
   onMarginChange: (value: number) => void;
   onFontSizeChange: (value: number) => void;
+  onCoverLetterToggle: (value: boolean) => void;
   onExport: () => void;
+  onEditCoverLetter?: () => void;
 }
 
 export function ExportSettings({
   margin,
   fontSize,
   isExporting,
+  withCoverLetter,
+  hasCoverLetter,
   onMarginChange,
   onFontSizeChange,
+  onCoverLetterToggle,
   onExport,
+  onEditCoverLetter,
 }: ExportSettingsProps) {
   return (
     <aside className="border border-[var(--border)] bg-[var(--surface)] p-4">
@@ -44,6 +52,32 @@ export function ExportSettings({
             onChange={(event) => onFontSizeChange(Number(event.target.value))}
           />
         </label>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-[var(--accent)]"
+                checked={withCoverLetter && hasCoverLetter}
+                disabled={!hasCoverLetter}
+                onChange={(event) => onCoverLetterToggle(event.target.checked)}
+              />
+              附加求职信
+            </label>
+            {hasCoverLetter && onEditCoverLetter ? (
+              <button
+                className="inline-flex items-center gap-1 text-xs text-[var(--accent-strong)] hover:underline"
+                type="button"
+                onClick={onEditCoverLetter}
+              >
+                <FileText size={12} aria-hidden /> 编辑
+              </button>
+            ) : null}
+          </div>
+          {!hasCoverLetter ? (
+            <p className="text-xs text-[var(--muted)]">还没有求职信，可以在简历编辑页创建。</p>
+          ) : null}
+        </div>
         <Button
           className="w-full"
           disabled={isExporting}

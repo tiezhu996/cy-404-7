@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Download, LayoutTemplate, UserRound } from 'lucide-react';
+import { Download, FileText, LayoutTemplate, UserRound } from 'lucide-react';
 import { BasicInfoPanel } from '../components/editor/BasicInfoPanel';
 import { ModuleSidebar } from '../components/editor/ModuleSidebar';
 import { Button } from '../components/common/Button';
@@ -95,6 +95,12 @@ export function ResumeEditor() {
             to="/templates"
           >
             <LayoutTemplate size={16} aria-hidden /> 模板库
+          </Link>
+          <Link
+            className="inline-flex min-h-10 items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold hover:bg-[var(--surface-alt)]"
+            to={`/resumes/${resume.id}/cover-letter`}
+          >
+            <FileText size={16} aria-hidden /> 求职信
           </Link>
           <Link
             className="inline-flex min-h-10 items-center gap-2 rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--ink-invert)] hover:bg-[var(--accent-strong)]"

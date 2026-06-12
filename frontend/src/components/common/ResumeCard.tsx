@@ -1,6 +1,7 @@
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react';
-import { Copy, Download, Edit3, MoreVertical, Trash2 } from 'lucide-react';
+import { Copy, Download, Edit3, FileText, MoreVertical, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useCoverLetterStore } from '../../stores/cover-letter';
 import { getTemplateById } from '../../stores/template';
 import { Resume } from '../../types/resume';
 import { formatDateTime } from '../../utils/format';
@@ -14,6 +15,9 @@ interface ResumeCardProps {
 export function ResumeCard({ resume, onDuplicate, onDelete }: ResumeCardProps) {
   const template = getTemplateById(resume.templateId);
   const enabledSections = resume.sections.filter((section) => section.enabled).length;
+  const hasCoverLetter = useCoverLetterStore((state) =>
+    state.coverLetters.some((cl) => cl.resumeId === resume.id),
+  );
 
   return (
     <article className="group flex min-h-[260px] flex-col justify-between border border-[var(--border)] bg-[var(--surface)] p-5 shadow-panel transition hover:-translate-y-0.5">
@@ -22,12 +26,23 @@ export function ResumeCard({ resume, onDuplicate, onDelete }: ResumeCardProps) {
           <div>
             <p className="text-xs font-semibold uppercase text-[var(--accent-strong)]">{template.name}</p>
             <h3 className="mt-2 font-display text-2xl font-semibold text-[var(--ink)]">{resume.title}</h3>
+            {hasCoverLetter ? (
+              <p className="mt-1 text-xs text-[var(--accent-strong)]">✓ 已附求职信</p>
+            ) : null}
           </div>
           <Menu as="div" className="relative">
             <MenuButton className="flex h-9 w-9 items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--surface-alt)]">
               <MoreVertical size={18} aria-hidden />
             </MenuButton>
             <MenuItems className="absolute right-0 z-20 mt-2 w-44 border border-[var(--border)] bg-[var(--surface)] p-1 shadow-panel">
+              <MenuItem>
+                <Link
+                  className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm data-[focus]:bg-[var(--surface-alt)]"
+                  to={`/resumes/${resume.id}/cover-letter`}
+                >
+                  <FileText size={15} aria-hidden /> 求职信
+                </Link>
+              </MenuItem>
               <MenuItem>
                 <button
                   className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm data-[focus]:bg-[var(--surface-alt)]"
@@ -62,6 +77,14 @@ export function ResumeCard({ resume, onDuplicate, onDelete }: ResumeCardProps) {
             to={`/resumes/${resume.id}/edit`}
           >
             <Edit3 size={16} aria-hidden /> 编辑
+          </Link>
+          <Link
+            className="inline-flex min-h-10 items-center justify-center rounded-md border border-[var(--border)] px-3 py-2 text-sm font-semibold hover:bg-[var(--surface-alt)]"
+            to={`/resumes/${resume.id}/cover-letter`}
+            aria-label="求职信"
+            title="编辑求职信"
+          >
+            <FileText size={16} aria-hidden />
           </Link>
           <Link
             className="inline-flex min-h-10 items-center justify-center rounded-md border border-[var(--border)] px-3 py-2 text-sm font-semibold hover:bg-[var(--surface-alt)]"
