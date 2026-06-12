@@ -4,7 +4,7 @@ import { ArrowLeft, Download, RefreshCw, FileText } from 'lucide-react';
 import { Button } from '../components/common/Button';
 import { EmptyState } from '../components/common/EmptyState';
 import { CoverLetterPreview } from '../components/preview/CoverLetterPreview';
-import { useCoverLetterStore, generateCoverLetterDraft } from '../stores/cover-letter';
+import { useCoverLetterStore } from '../stores/cover-letter';
 import { useResumeStore } from '../stores/resume';
 import { getTemplateById } from '../stores/template';
 import { formatDateTime } from '../utils/format';
@@ -19,6 +19,8 @@ export function CoverLetterEditor() {
   const coverLetters = useCoverLetterStore((state) => state.coverLetters);
   const getOrCreateCoverLetter = useCoverLetterStore((state) => state.getOrCreateCoverLetter);
   const updateCoverLetter = useCoverLetterStore((state) => state.updateCoverLetter);
+  const updateTargetField = useCoverLetterStore((state) => state.updateTargetField);
+  const markCustomized = useCoverLetterStore((state) => state.markCustomized);
   const regenerateContent = useCoverLetterStore((state) => state.regenerateContent);
 
   const resume = useMemo(() => resumes.find((item) => item.id === id), [id, resumes]);
@@ -51,8 +53,22 @@ export function CoverLetterEditor() {
   const template = getTemplateById(resume.templateId);
 
   const handleRegenerate = () => {
-    const content = generateCoverLetterDraft(resume, coverLetter.targetPosition, coverLetter.targetCompany);
-    updateCoverLetter(coverLetter.id, { content });
+    regenerateContent(coverLetter.id, resume);
+  };
+
+  const handleTargetCompanyChange = (value: string) => {
+    updateTargetField(coverLetter.id, { targetCompany: value }, resume);
+  };
+
+  const handleTargetPositionChange = (value: string) => {
+    updateTargetField(coverLetter.id, { targetPosition: value }, resume);
+  };
+
+  const handleContentChange = (value: string) => {
+    updateCoverLetter(coverLetter.id, { content: value });
+    if (!coverLetter.isCustomized) {
+      markCustomized(coverLetter.id);
+    }
   };
 
   return (
@@ -99,7 +115,7 @@ export function CoverLetterEditor() {
                   className={inputClass}
                   value={coverLetter.targetCompany}
                   placeholder="例如：青松科技"
-                  onChange={(event) => updateCoverLetter(coverLetter.id, { targetCompany: event.target.value })}
+                  onChange={(event) => handleTargetCompanyChange(event.target.value)}
                 />
               </label>
               <label className="block space-y-2 text-sm font-medium">
@@ -108,12 +124,14 @@ export function CoverLetterEditor() {
                   className={inputClass}
                   value={coverLetter.targetPosition}
                   placeholder="例如：高级产品经理"
-                  onChange={(event) => updateCoverLetter(coverLetter.id, { targetPosition: event.target.value })}
+                  onChange={(event) => handleTargetPositionChange(event.target.value)}
                 />
               </label>
             </div>
             <p className="mt-3 text-xs text-[var(--muted)]">
-              填写后点击「重新生成」会根据最新的岗位信息重新生成求职信内容。
+              {coverLetter.isCustomized
+                ? '你已手动改写过正文，修改目标信息不会自动更新正文。如需同步请点击「重新生成」。'
+                : '修改目标信息后正文会自动重新生成；手动改写正文后将停止自动更新。'}
             </p>
           </section>
 
@@ -129,7 +147,7 @@ export function CoverLetterEditor() {
               <textarea
                 className={textareaClass}
                 value={coverLetter.content}
-                onChange={(event) => updateCoverLetter(coverLetter.id, { content: event.target.value })}
+                onChange={(event) => handleContentChange(event.target.value)}
               />
             </label>
           </section>

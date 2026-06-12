@@ -4,7 +4,7 @@ import { Resume } from '../types/resume';
 import { createId } from '../utils/format';
 import { readStorage, storageKeys, writeStorage } from '../utils/storage';
 
-function buildCoverLetter(resumeId: string, targetPosition = '', targetCompany = '', content = ''): CoverLetter {
+function buildCoverLetter(resumeId: string, targetPosition = '', targetCompany = '', content = '', isCustomized = false): CoverLetter {
   const now = new Date().toISOString();
   return {
     id: createId('cl'),
@@ -12,6 +12,7 @@ function buildCoverLetter(resumeId: string, targetPosition = '', targetCompany =
     targetPosition,
     targetCompany,
     content,
+    isCustomized,
     createdAt: now,
     updatedAt: now,
   };
@@ -56,7 +57,10 @@ export function generateCoverLetterDraft(resume: Resume, targetPosition: string,
   return paragraphs.join('\n\n');
 }
 
-const storedCoverLetters = readStorage<CoverLetter[]>(storageKeys.coverLetters, []);
+const storedCoverLetters = readStorage<CoverLetter[]>(storageKeys.coverLetters, []).map((cl) => ({
+  ...cl,
+  isCustomized: cl.isCustomized ?? false,
+}));
 
 function persist(coverLetters: CoverLetter[]): void {
   writeStorage(storageKeys.coverLetters, coverLetters);
@@ -68,6 +72,8 @@ interface CoverLetterState {
   createCoverLetter: (resumeId: string, targetPosition?: string, targetCompany?: string, content?: string) => CoverLetter;
   getOrCreateCoverLetter: (resume: Resume, targetPosition?: string, targetCompany?: string) => CoverLetter;
   updateCoverLetter: (coverLetterId: string, patch: Partial<CoverLetter>) => void;
+  updateTargetField: (coverLetterId: string, patch: Partial<CoverLetter>, resume: Resume) => void;
+  markCustomized: (coverLetterId: string) => void;
   regenerateContent: (coverLetterId: string, resume: Resume) => void;
   deleteCoverLetter: (coverLetterId: string) => void;
   deleteCoverLettersByResumeId: (resumeId: string) => void;
@@ -99,6 +105,34 @@ export const useCoverLetterStore = create<CoverLetterState>((set, get) => ({
     set({ coverLetters: next });
     persist(next);
   },
+  updateTargetField: (coverLetterId, patch, resume) => {
+    const cl = get().coverLetters.find((item) => item.id === coverLetterId);
+    if (!cl) {
+      return;
+    }
+    const merged = { ...cl, ...patch };
+    if (cl.isCustomized) {
+      const next = get().coverLetters.map((item) =>
+        item.id === coverLetterId ? { ...item, ...patch, updatedAt: new Date().toISOString() } : item,
+      );
+      set({ coverLetters: next });
+      persist(next);
+      return;
+    }
+    const content = generateCoverLetterDraft(resume, merged.targetPosition, merged.targetCompany);
+    const next = get().coverLetters.map((item) =>
+      item.id === coverLetterId ? { ...item, ...patch, content, updatedAt: new Date().toISOString() } : item,
+    );
+    set({ coverLetters: next });
+    persist(next);
+  },
+  markCustomized: (coverLetterId) => {
+    const next = get().coverLetters.map((cl) =>
+      cl.id === coverLetterId ? { ...cl, isCustomized: true, updatedAt: new Date().toISOString() } : cl,
+    );
+    set({ coverLetters: next });
+    persist(next);
+  },
   regenerateContent: (coverLetterId, resume) => {
     const cl = get().coverLetters.find((item) => item.id === coverLetterId);
     if (!cl) {
@@ -106,7 +140,7 @@ export const useCoverLetterStore = create<CoverLetterState>((set, get) => ({
     }
     const content = generateCoverLetterDraft(resume, cl.targetPosition, cl.targetCompany);
     const next = get().coverLetters.map((item) =>
-      item.id === coverLetterId ? { ...item, content, updatedAt: new Date().toISOString() } : item,
+      item.id === coverLetterId ? { ...item, content, isCustomized: false, updatedAt: new Date().toISOString() } : item,
     );
     set({ coverLetters: next });
     persist(next);

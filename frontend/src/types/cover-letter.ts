@@ -4,6 +4,7 @@ export interface CoverLetter {
   targetPosition: string;
   targetCompany: string;
   content: string;
+  isCustomized: boolean;
   createdAt: string;
   updatedAt: string;
 }
