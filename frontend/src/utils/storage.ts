@@ -5,6 +5,7 @@ export const storageKeys = {
   template: 'smart-resume:selectedTemplateId',
   theme: 'smart-resume:theme',
   coverLetters: 'smart-resume:coverLetters',
+  coverLetterMigrationVersion: 'smart-resume:coverLetterMigrationVersion',
 } as const;
 
 const canUseStorage = () => typeof window !== 'undefined' && Boolean(window.localStorage);

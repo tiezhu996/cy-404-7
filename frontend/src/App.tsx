@@ -1,6 +1,9 @@
+import { useEffect } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { FileText, IdCard, LayoutTemplate, MoonStar } from 'lucide-react';
 import { ThemeToggle } from './components/common/ThemeToggle';
+import { useCoverLetterStore } from './stores/cover-letter';
+import { useResumeStore } from './stores/resume';
 
 const navItems = [
   { to: '/resumes', label: '简历', icon: FileText },
@@ -9,6 +12,16 @@ const navItems = [
 ];
 
 export function AppLayout() {
+  const resumes = useResumeStore((state) => state.resumes);
+  const migrateLegacyData = useCoverLetterStore((state) => state.migrateLegacyData);
+  const hasMigrated = useCoverLetterStore((state) => state.hasMigrated);
+
+  useEffect(() => {
+    if (!hasMigrated && resumes.length > 0) {
+      migrateLegacyData(resumes);
+    }
+  }, [hasMigrated, resumes, migrateLegacyData]);
+
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--bg)]/95 backdrop-blur">

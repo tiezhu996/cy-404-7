@@ -57,10 +57,9 @@ export function generateCoverLetterDraft(resume: Resume, targetPosition: string,
   return paragraphs.join('\n\n');
 }
 
-const storedCoverLetters = readStorage<CoverLetter[]>(storageKeys.coverLetters, []).map((cl) => ({
-  ...cl,
-  isCustomized: cl.isCustomized ?? false,
-}));
+const CURRENT_MIGRATION_VERSION = 1;
+
+const storedCoverLetters = readStorage<CoverLetter[]>(storageKeys.coverLetters, []);
 
 function persist(coverLetters: CoverLetter[]): void {
   writeStorage(storageKeys.coverLetters, coverLetters);
@@ -68,6 +67,7 @@ function persist(coverLetters: CoverLetter[]): void {
 
 interface CoverLetterState {
   coverLetters: CoverLetter[];
+  hasMigrated: boolean;
   getCoverLetterByResumeId: (resumeId: string) => CoverLetter | undefined;
   createCoverLetter: (resumeId: string, targetPosition?: string, targetCompany?: string, content?: string) => CoverLetter;
   getOrCreateCoverLetter: (resume: Resume, targetPosition?: string, targetCompany?: string) => CoverLetter;
@@ -75,6 +75,7 @@ interface CoverLetterState {
   updateTargetField: (coverLetterId: string, patch: Partial<CoverLetter>, resume: Resume) => void;
   markCustomized: (coverLetterId: string) => void;
   regenerateContent: (coverLetterId: string, resume: Resume) => void;
+  migrateLegacyData: (resumes: Resume[]) => boolean;
   deleteCoverLetter: (coverLetterId: string) => void;
   deleteCoverLettersByResumeId: (resumeId: string) => void;
   duplicateCoverLetter: (sourceResumeId: string, targetResumeId: string) => void;
@@ -82,6 +83,7 @@ interface CoverLetterState {
 
 export const useCoverLetterStore = create<CoverLetterState>((set, get) => ({
   coverLetters: storedCoverLetters,
+  hasMigrated: readStorage<number>(storageKeys.coverLetterMigrationVersion, 0) >= CURRENT_MIGRATION_VERSION,
   getCoverLetterByResumeId: (resumeId) => get().coverLetters.find((cl) => cl.resumeId === resumeId),
   createCoverLetter: (resumeId, targetPosition = '', targetCompany = '', content = '') => {
     const newCoverLetter = buildCoverLetter(resumeId, targetPosition, targetCompany, content);
@@ -111,7 +113,8 @@ export const useCoverLetterStore = create<CoverLetterState>((set, get) => ({
       return;
     }
     const merged = { ...cl, ...patch };
-    if (cl.isCustomized) {
+    const shouldProtect = cl.isCustomized ?? true;
+    if (shouldProtect) {
       const next = get().coverLetters.map((item) =>
         item.id === coverLetterId ? { ...item, ...patch, updatedAt: new Date().toISOString() } : item,
       );
@@ -144,6 +147,32 @@ export const useCoverLetterStore = create<CoverLetterState>((set, get) => ({
     );
     set({ coverLetters: next });
     persist(next);
+  },
+  migrateLegacyData: (resumes) => {
+    if (get().hasMigrated) {
+      return false;
+    }
+    const resumeMap = new Map(resumes.map((r) => [r.id, r]));
+    const migrated = get().coverLetters.map((cl) => {
+      if (cl.isCustomized !== undefined) {
+        return cl;
+      }
+      const resume = resumeMap.get(cl.resumeId);
+      if (!resume) {
+        return { ...cl, isCustomized: true };
+      }
+      const expected = generateCoverLetterDraft(resume, cl.targetPosition, cl.targetCompany);
+      const isCustomized = expected !== cl.content;
+      return { ...cl, isCustomized };
+    });
+    const hasChanges = migrated.some((cl, index) => cl.isCustomized !== get().coverLetters[index]?.isCustomized);
+    if (hasChanges) {
+      set({ coverLetters: migrated });
+      persist(migrated);
+    }
+    set({ hasMigrated: true });
+    writeStorage(storageKeys.coverLetterMigrationVersion, CURRENT_MIGRATION_VERSION);
+    return true;
   },
   deleteCoverLetter: (coverLetterId) => {
     const next = get().coverLetters.filter((cl) => cl.id !== coverLetterId);

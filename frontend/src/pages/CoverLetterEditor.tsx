@@ -17,11 +17,13 @@ export function CoverLetterEditor() {
   const { id } = useParams();
   const resumes = useResumeStore((state) => state.resumes);
   const coverLetters = useCoverLetterStore((state) => state.coverLetters);
+  const hasMigrated = useCoverLetterStore((state) => state.hasMigrated);
   const getOrCreateCoverLetter = useCoverLetterStore((state) => state.getOrCreateCoverLetter);
   const updateCoverLetter = useCoverLetterStore((state) => state.updateCoverLetter);
   const updateTargetField = useCoverLetterStore((state) => state.updateTargetField);
   const markCustomized = useCoverLetterStore((state) => state.markCustomized);
   const regenerateContent = useCoverLetterStore((state) => state.regenerateContent);
+  const migrateLegacyData = useCoverLetterStore((state) => state.migrateLegacyData);
 
   const resume = useMemo(() => resumes.find((item) => item.id === id), [id, resumes]);
   const coverLetter = useMemo(
@@ -34,6 +36,12 @@ export function CoverLetterEditor() {
       getOrCreateCoverLetter(resume);
     }
   }, [resume, coverLetter, getOrCreateCoverLetter]);
+
+  useEffect(() => {
+    if (!hasMigrated && resume) {
+      migrateLegacyData(resumes);
+    }
+  }, [hasMigrated, resume, resumes, migrateLegacyData]);
 
   if (!resume) {
     return (
@@ -129,9 +137,11 @@ export function CoverLetterEditor() {
               </label>
             </div>
             <p className="mt-3 text-xs text-[var(--muted)]">
-              {coverLetter.isCustomized
+              {coverLetter.isCustomized === true
                 ? '你已手动改写过正文，修改目标信息不会自动更新正文。如需同步请点击「重新生成」。'
-                : '修改目标信息后正文会自动重新生成；手动改写正文后将停止自动更新。'}
+                : coverLetter.isCustomized === false
+                  ? '修改目标信息后正文会自动重新生成；手动改写正文后将停止自动更新。'
+                  : '为保护你的历史改写，修改目标信息暂时不会自动更新正文。点击「重新生成」可启用自动同步。'}
             </p>
           </section>
 
